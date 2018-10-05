@@ -1,16 +1,23 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR.WSA;
 
 
 //put on player character
 //controls movement and rotation of player character
 public class PlayerController : MonoBehaviour
 {
-
+	public GameObject GameState;
+	private GameController gameStateScript;
+	private int THROW = 1;
+	private int CATCH = 2;
+	
 	private float moveSpeed;
 	private Vector3 inputVector;
 	private Rigidbody myRbody;
+	private float gravity;
 
 	private Camera cam;
 	private Vector3 mousePosition;
@@ -23,17 +30,29 @@ public class PlayerController : MonoBehaviour
 	private bool hasBall;
 	private bool isChargingThrow;
 	private float throwPower;
-	private float maxPower = 100;
-	private float powerGrowthRate = 40;
+	public float throwAngle = 45;
+	private float throwRadianAngle;
+	public float maxPower = 10;
+	public float powerGrowthRate = 4;
+
+	public GameObject throwTrajectory;
+	private LineRenderer trajectoryLR;
+	public int lineResolution;
+	public GameObject trajectoryHit;
 	
 	
 	// Use this for initialization
 	void Start ()
 	{
+		gameStateScript = GameState.GetComponent<GameController>();
 		myRbody = GetComponent<Rigidbody>();
 		ballRbody = ball.GetComponent<Rigidbody>();
+		trajectoryLR = throwTrajectory.GetComponent<LineRenderer>();
+		
 		cam = Camera.main;
 		FLOOR_LAYERMASK = 1 << 9;
+
+		gravity = Mathf.Abs(Physics.gravity.y);
 	}
 	
 	void Update ()
@@ -79,22 +98,18 @@ public class PlayerController : MonoBehaviour
 			moveSpeed = distanceFromMouse;
 		}
 		
-		//get inputs
+		//get W/S inputs - since people don't run sideways
 		float vertical = Input.GetAxis("Vertical");
-		float horizontal = Input.GetAxis("Horizontal");
-		
-		//change inputVector accordingly
 		inputVector = transform.forward * vertical;
-		//inputVector += transform.right * horizontal;
 
-		if (hasBall && Input.GetMouseButtonDown(0) && !isChargingThrow)
+		if (hasBall && Input.GetMouseButtonDown(0) && !isChargingThrow) //on mouse down
 		{
 			isChargingThrow = true;
 			throwPower = 0f;
 		} 
-		else if (hasBall && Input.GetMouseButton(0) && isChargingThrow)
+		else if (hasBall && Input.GetMouseButton(0) && isChargingThrow) //during mouse hold
 		{
-			if (throwPower <= maxPower)
+			if (throwPower < maxPower)
 			{
 				throwPower += Time.deltaTime * powerGrowthRate;
 			}
@@ -102,23 +117,28 @@ public class PlayerController : MonoBehaviour
 			{
 				throwPower = maxPower;
 			}
-			Debug.Log(throwPower);
+
+			throwTrajectory.transform.position = ball.transform.position;
+			throwTrajectory.transform.eulerAngles = this.transform.eulerAngles - new Vector3(0, 90, 0);
+			RenderArc();
 		} 
-		else if (hasBall && Input.GetMouseButtonUp(0) && isChargingThrow)
+		else if (hasBall && Input.GetMouseButtonUp(0) && isChargingThrow) //on mouse release
 		{
-			float ballAngle;
-			Vector3 ballAngleV3;
+			Vector3 throwAngleV3;
 			
 			isChargingThrow = false;
 			hasBall = false;
 			ball.transform.parent = null;
 			ballRbody.isKinematic = false;
 
-			ballAngle = throwPower / maxPower * 60;
-			ballAngleV3 = new Vector3(ballAngle * -1, transform.eulerAngles.y, transform.eulerAngles.z);
-			ballRbody.transform.eulerAngles = ballAngleV3;
-			ballRbody.AddForce(ball.transform.forward * throwPower * 10);
+			//throwPower / maxPower * 60;
+			throwAngleV3 = new Vector3(throwAngle * -1, transform.eulerAngles.y, transform.eulerAngles.z);
+			ballRbody.transform.eulerAngles = throwAngleV3;
+			ballRbody.velocity = ball.transform.forward * throwPower;
+			//ballRbody.AddForce(ball.transform.forward * throwPower * 10);
 
+			gameStateScript.ballInAir = true;
+			gameStateScript.gameState = CATCH;
 		}
 
 		Debug.DrawRay(ball.transform.position, ball.transform.forward * 100, Color.white);
@@ -132,7 +152,7 @@ public class PlayerController : MonoBehaviour
 
 	void OnCollisionEnter(Collision collision)
 	{
-		if (collision.gameObject == ball)
+		if (collision.gameObject == ball && gameStateScript.gameState == THROW) //when player collides with ball
 		{
 			hasBall = true;
 			ball.transform.parent = this.gameObject.transform;
@@ -140,5 +160,40 @@ public class PlayerController : MonoBehaviour
 			ball.transform.localPosition = Vector3.forward * 1.1f;
 			ball.transform.eulerAngles = Vector3.zero;
 		}
+	}
+
+	void RenderArc() //set appropriate settings for line renderer
+	{
+		trajectoryLR.enabled = true;
+		trajectoryHit.GetComponent<SpriteRenderer>().enabled = true;
+		trajectoryLR.positionCount = lineResolution + 1;
+		trajectoryLR.SetPositions(CalculateArcArray());
+		Vector3 hitPosition = trajectoryLR.transform.TransformPoint(trajectoryLR.GetPosition(lineResolution));
+		hitPosition.y = 0.01f;
+		trajectoryHit.transform.position = hitPosition;
+	}
+
+	Vector3[] CalculateArcArray() //create array of Vector3 positions for arc
+	{
+		Vector3[] arcArray = new Vector3[lineResolution + 1];
+		throwRadianAngle = Mathf.Deg2Rad * throwAngle;
+		//float maxDistance = (throwPower * throwPower * Mathf.Sin(2 * throwRadianAngle)) / gravity;
+		float endTime = ((-throwPower * Mathf.Sin(throwRadianAngle)) - Mathf.Sqrt((throwPower * Mathf.Sin(throwRadianAngle)) * (throwPower * Mathf.Sin(throwRadianAngle)) - (4 * (-gravity/2) * ball.transform.position.y))) / -gravity;
+		float endDistance = throwPower * endTime * Mathf.Cos(throwRadianAngle);
+
+		for (int i = 0; i <= lineResolution; i++)
+		{
+			float time = ((float) i / (float) lineResolution);
+			arcArray[i] = CalculateArcPoint(time, endDistance);
+		}
+
+		return arcArray;
+	}
+
+	Vector3 CalculateArcPoint(float time, float endDistance)
+	{
+		float x = time * endDistance;
+		float y = x * Mathf.Tan(throwRadianAngle) - ((gravity * x * x) / (2 * throwPower * throwPower * Mathf.Cos(throwRadianAngle) * Mathf.Cos(throwRadianAngle)));
+		return new Vector3(x, y);
 	}
 }
