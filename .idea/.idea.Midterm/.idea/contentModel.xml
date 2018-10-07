@@ -11,6 +11,7 @@
           <e p="GameController.cs" t="Include" />
           <e p="PartnerController.cs" t="Include" />
           <e p="PlayerController.cs" t="Include" />
+          <e p="TrajectoryHitMarkerAlpha.cs" t="Include" />
         </e>
       </e>
       <e p="Library" t="ExcludeRecursive" />

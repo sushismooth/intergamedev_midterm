@@ -42,6 +42,7 @@ public class PartnerController : MonoBehaviour {
 				gameStateScript.successThrows += 1;
 			}
 			hasBall = true;
+			gameStateScript.ballHeld = 2;
 			ball.transform.parent = this.gameObject.transform;
 			ballRbody.isKinematic = true;
 			ball.transform.localPosition = Vector3.forward * 1.1f;

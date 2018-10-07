@@ -15,6 +15,7 @@ public class GameController : MonoBehaviour {
 	public GameObject ball;
 	public bool ballInAir;
 	public bool ballGrounded;
+	public int ballHeld; //0 = none; 1 = player, 2 = partner
 
 	public GameObject successText;
 	
