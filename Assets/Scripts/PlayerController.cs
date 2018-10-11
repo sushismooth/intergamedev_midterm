@@ -29,8 +29,8 @@ public class PlayerController : MonoBehaviour
 	private Rigidbody ballRbody;
 	private bool hasBall;
 	public bool isChargingThrow;
-	private float endTime;
-	private float airTime;
+	public float endTime;
+	public float airTime;
 	private float throwPower;
 	public float throwAngle = 45;
 	private float throwRadianAngle;
@@ -57,14 +57,17 @@ public class PlayerController : MonoBehaviour
 
 		gravity = Mathf.Abs(Physics.gravity.y);
 	}
-	
-	void Update ()
+
+	void Update()
 	{
 		MouseToWorldPosition();
 		PlayerMovement();
 		ThrowBall();
+		if (gameStateScript.lastHeldBall == 1)
+		{
 		ReduceTrajectory();
-		SetTrajectoryGradient();
+        SetTrajectoryGradient();	
+		}
 		CheckBallGrounded();
 
 		//Debug.DrawRay(ball.transform.position, ball.transform.forward * 100, Color.white);
@@ -83,12 +86,21 @@ public class PlayerController : MonoBehaviour
 	{
 		if (collision.gameObject == ball && gameStateScript.gameState == THROW) //when player collides with ball
 		{
+			if (gameStateScript.ballInAir)
+			{
+				gameStateScript.successCatches += 1;
+			}
+			
 			hasBall = true;
+			gameStateScript.ballInAir = false;
 			gameStateScript.ballHeld = 1;
+			gameStateScript.lastHeldBall = 1;
 			ball.transform.parent = this.gameObject.transform; //attach ball to player, remove physics
 			ballRbody.isKinematic = true;
 			ball.transform.localPosition = Vector3.forward * 1.1f;
 			ball.transform.eulerAngles = Vector3.zero;
+
+			trajectoryLR.positionCount = 0;
 		}
 	}
 

@@ -11,6 +11,9 @@ public class TrajectoryHitMarkerAlpha : MonoBehaviour
 
 	public GameObject player;
 	private PlayerController playerScript;
+
+	public GameObject partner;
+	private PartnerController partnerScript;
 	
 	public Transform ball;
 	private SpriteRenderer mySpriteRenderer;
@@ -28,11 +31,12 @@ public class TrajectoryHitMarkerAlpha : MonoBehaviour
 		myMaterial = mySpriteRenderer.material;
 		gameStateScript = GameState.GetComponent<GameController>();
 		playerScript = player.GetComponent<PlayerController>();
+		partnerScript = partner.GetComponent<PartnerController>();
 		timeoutTimer = timeoutDuration;
 	}
 	void Update ()
 	{
-		if ((gameStateScript.ballGrounded || (gameStateScript.ballHeld > 0 && !playerScript.isChargingThrow)) && mySpriteRenderer.enabled)
+		if ((gameStateScript.ballGrounded || (gameStateScript.ballHeld > 0 && !playerScript.isChargingThrow && !partnerScript.isChargingThrow)) && mySpriteRenderer.enabled)
 		{
 			timeout = true;
 		}

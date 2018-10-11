@@ -1225,6 +1225,7 @@ MonoBehaviour:
   ballInAir: 0
   ballGrounded: 0
   ballHeld: 0
+  lastHeldBall: 0
   successText: {fileID: 869993262}
 --- !u!4 &1715088285
 Transform:
@@ -1445,6 +1446,8 @@ MonoBehaviour:
   GameState: {fileID: 1715088283}
   ball: {fileID: 2084279030}
   isChargingThrow: 0
+  endTime: 0
+  airTime: 0
   throwAngle: 45
   maxPower: 10
   powerGrowthRate: 10
@@ -1617,7 +1620,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 2047107694}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -14.42, y: 1.28, z: 0.11}
+  m_LocalPosition: {x: -6.99, y: 1.28, z: 0.11}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1650,7 +1653,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GameState: {fileID: 1715088283}
+  player: {fileID: 1926604046}
   ball: {fileID: 2084279030}
+  isChargingThrow: 0
+  endTime: 0
+  airTime: 0
+  throwTrajectory: {fileID: 780429967}
+  lineResolution: 20
+  trajectoryHit: {fileID: 2069863114}
+  trajectoryAlphaCutoff: 1
 --- !u!1 &2069863114
 GameObject:
   m_ObjectHideFlags: 0
@@ -1739,6 +1750,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GameState: {fileID: 1715088283}
   player: {fileID: 1926604046}
+  partner: {fileID: 2047107694}
   ball: {fileID: 2084279035}
   maxRenderDistance: 10
   maxDistanceForFullAlpha: 1
