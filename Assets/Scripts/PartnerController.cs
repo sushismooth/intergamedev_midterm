@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class PartnerController : MonoBehaviour {
 
@@ -10,25 +11,34 @@ public class PartnerController : MonoBehaviour {
 	private int THROW = 1;
 	private int CATCH = 2;
 
-	private float moveSpeed = 10f;
+	public float moveSpeed = 10f;
 	private Rigidbody myRbody;
 	private float gravity;
 
 	public GameObject player;
 	private Vector3 playerPos;
+	private Bounds playerBounds;
 	
 	public GameObject ball;
 	private Rigidbody ballRbody;
-	private bool hasBall;
+	public bool hasBall;
 	private float timeSincePickup;
 	private float pickupWaitTime = 1f;
-	
+
+	public float minZ;
+	public float maxZ;
+	private int currentPatrolTarget = 1;
+	private Vector3 patrolPos1;
+	private Vector3 patrolPos2;
+	public bool isPatrolling = false;
+	private bool wasPatrolling = false;
+
 	public bool isChargingThrow;
 	private Vector3 throwTarget;
 	private float throwDistance;
 	private float throwPower;
 	private float requiredPower;
-	private float powerGrowthRate = 4;
+	public float powerGrowthRate;
 	private float throwAngle = 45f;
 	private float throwRadianAngle;
 	public float endTime;
@@ -46,6 +56,7 @@ public class PartnerController : MonoBehaviour {
 		myRbody = GetComponent<Rigidbody>();
 		ballRbody = ball.GetComponent<Rigidbody>();
 		trajectoryLR = throwTrajectory.GetComponent<LineRenderer>();
+		playerBounds = new Bounds(new Vector3( 0f, 0.5f, 10f), new Vector3(50f, 2f, 20f));
 		
 		gravity = Math.Abs(Physics.gravity.y);
 	}
@@ -61,9 +72,20 @@ public class PartnerController : MonoBehaviour {
 
 		if (hasBall && !isChargingThrow)
 		{
-			if (timeSincePickup >= pickupWaitTime)
+			if (timeSincePickup >= pickupWaitTime && transform.position.z > minZ && transform.position.z < maxZ)
 			{
 				ThrowBall();
+			}
+			else
+			{
+				if (transform.position.z < minZ)
+				{
+					transform.LookAt(new Vector3(transform.position.x, transform.position.y, 100f));
+				}
+				if (transform.position.z > maxZ)
+				{
+					transform.LookAt(new Vector3(transform.position.x, transform.position.y, -100f));
+				}
 			}
 			timeSincePickup += Time.deltaTime;
 		}
@@ -78,6 +100,18 @@ public class PartnerController : MonoBehaviour {
 			ReduceTrajectory();
 			SetTrajectoryGradient();	
 		}
+
+		if (isPatrolling)
+		{
+			StartPatrol();
+			CheckPatrolTarget();
+			Debug.DrawLine(patrolPos1, patrolPos2, Color.yellow); //show patrol path
+		}
+
+		Debug.DrawLine(new Vector3(-25, 0.1f, minZ), new Vector3(25, 0.1f, minZ), Color.red); //show bounds
+		Debug.DrawLine(new Vector3(-25, 0.1f, maxZ), new Vector3(25, 0.1f, maxZ), Color.red);
+
+		wasPatrolling = isPatrolling;
 	}
 
 	void ThrowBall()
@@ -91,9 +125,17 @@ public class PartnerController : MonoBehaviour {
 		playerPos.y = 0;
 		
 		//find target
-		float distance;
-		throwTarget = playerPos;
-		distance = Vector2.Distance(new Vector2(ball.transform.position.x, ball.transform.position.z), new Vector2(throwTarget.x, throwTarget.z)); //calculate change in x
+		float distanceFromPlayer = Vector3.Distance(transform.position, player.transform.position); //find distance between two character for randomPoint
+		Vector2 randomPoint = Random.insideUnitCircle * (distanceFromPlayer/2);	
+		throwTarget = playerPos + new Vector3( randomPoint.x, 0, randomPoint.y);
+		int tries = 0;
+		while (!playerBounds.Contains(throwTarget) && tries < 100)
+		{
+			randomPoint = Random.insideUnitCircle * (distanceFromPlayer/2);	
+			throwTarget = playerPos + new Vector3( randomPoint.x, 0, randomPoint.y);
+			tries++;
+		}
+		float distance = Vector2.Distance(new Vector2(ball.transform.position.x, ball.transform.position.z), new Vector2(throwTarget.x, throwTarget.z)); //calculate change in x
 		
 		
 		//find required velocity
@@ -222,7 +264,28 @@ public class PartnerController : MonoBehaviour {
 		gradient.SetKeys(colorKeys,alphaKeys);
 		trajectoryLR.colorGradient = gradient;
 	}
-	
+
+	void StartPatrol()
+	{
+		if (isPatrolling && !wasPatrolling) //check if patrol just started
+		{
+			patrolPos1 = new Vector3(Random.Range(-20f, 0f), transform.position.y, Random.Range(minZ, maxZ));
+			patrolPos2 = new Vector3(Random.Range(patrolPos1.x + 10, 20f), transform.position.y, Random.Range(minZ, maxZ));
+		}
+	}
+
+	void CheckPatrolTarget()
+	{
+		if (transform.position.x < patrolPos1.x && currentPatrolTarget == 1)
+		{
+			currentPatrolTarget = 2;
+		}
+		else if (transform.position.x > patrolPos2.x && currentPatrolTarget == 2)
+		{
+			currentPatrolTarget = 1;
+		}
+	}
+
 	void OnCollisionEnter(Collision collision)
 	{
 		if (collision.gameObject == ball && gameStateScript.gameState == CATCH)
@@ -232,12 +295,13 @@ public class PartnerController : MonoBehaviour {
 				gameStateScript.successThrows += 1;
 			}
 			hasBall = true;
+			isPatrolling = false;
 			gameStateScript.ballInAir = false;
 			gameStateScript.ballHeld = 2;
 			gameStateScript.lastHeldBall = 2;
 			ball.transform.parent = this.gameObject.transform;
 			ballRbody.isKinematic = true;
-			ball.transform.localPosition = Vector3.forward * 1.1f;
+			ball.transform.localPosition = Vector3.forward * 1.1f * ball.transform.localScale.x;
 			ball.transform.eulerAngles = Vector3.zero;
 			
 			trajectoryLR.positionCount = 0;
@@ -246,9 +310,26 @@ public class PartnerController : MonoBehaviour {
 
 	void FixedUpdate()
 	{
-		if(gameStateScript.gameState == CATCH && !hasBall && gameStateScript.ballGrounded && !gameStateScript.ballInAir)
+		if(gameStateScript.gameState == CATCH && !hasBall && gameStateScript.ballGrounded && !gameStateScript.ballInAir) //move to pickup ball
 		{
 			myRbody.velocity = transform.forward * moveSpeed;
+		} 
+		else if (gameStateScript.gameState == CATCH && hasBall && (transform.position.z > maxZ || transform.position.z < minZ) && !isChargingThrow)
+		{
+			myRbody.velocity = transform.forward * moveSpeed;
+		} 
+		else if (isPatrolling)
+		{
+			if (currentPatrolTarget == 1)
+			{
+				transform.LookAt(patrolPos1);
+				myRbody.velocity = transform.forward * moveSpeed;
+			}
+			else if (currentPatrolTarget == 2)
+			{
+				transform.LookAt(patrolPos2);
+				myRbody.velocity = transform.forward * moveSpeed;
+			}
 		}
 	}
 }

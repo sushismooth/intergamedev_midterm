@@ -11,10 +11,13 @@ public class PlayerController : MonoBehaviour
 {
 	public GameObject GameState;
 	private GameController gameStateScript;
+	public GameObject partner;
+	private PartnerController partnerScript;
 	private int THROW = 1;
 	private int CATCH = 2;
 	
 	private float moveSpeed;
+	public float maxMoveSpeed;
 	private Vector3 inputVector;
 	private Rigidbody myRbody;
 	private float gravity;
@@ -27,15 +30,15 @@ public class PlayerController : MonoBehaviour
 
 	public GameObject ball;
 	private Rigidbody ballRbody;
-	private bool hasBall;
+	public bool hasBall;
 	public bool isChargingThrow;
 	public float endTime;
 	public float airTime;
 	private float throwPower;
-	public float throwAngle = 45;
+	public float throwAngle;
 	private float throwRadianAngle;
-	public float maxPower = 10;
-	public float powerGrowthRate = 4;
+	public float maxPower;
+	public float powerGrowthRate;
 
 	public GameObject throwTrajectory;
 	private LineRenderer trajectoryLR;
@@ -48,6 +51,7 @@ public class PlayerController : MonoBehaviour
 	void Start ()
 	{
 		gameStateScript = GameState.GetComponent<GameController>();
+		partnerScript = partner.GetComponent<PartnerController>();
 		myRbody = GetComponent<Rigidbody>();
 		ballRbody = ball.GetComponent<Rigidbody>();
 		trajectoryLR = throwTrajectory.GetComponent<LineRenderer>();
@@ -92,12 +96,13 @@ public class PlayerController : MonoBehaviour
 			}
 			
 			hasBall = true;
+			partnerScript.isPatrolling = true;
 			gameStateScript.ballInAir = false;
 			gameStateScript.ballHeld = 1;
 			gameStateScript.lastHeldBall = 1;
 			ball.transform.parent = this.gameObject.transform; //attach ball to player, remove physics
 			ballRbody.isKinematic = true;
-			ball.transform.localPosition = Vector3.forward * 1.1f;
+			ball.transform.localPosition = Vector3.forward * (1.1f * ((transform.localScale.x/2) + 0.5f) * ball.transform.localScale.x);
 			ball.transform.eulerAngles = Vector3.zero;
 
 			trajectoryLR.positionCount = 0;
@@ -106,25 +111,28 @@ public class PlayerController : MonoBehaviour
 
 	void MouseToWorldPosition()
 	{
-		//find the world location on the floor plane where the mouse cursor is pointing at
-		//cursor to world location
-		mousePosition = Input.mousePosition;
-		mousePosition.z = 1;
-		mouseAwayFromCamera = cam.ScreenToWorldPoint(mousePosition);
-		
-		//find direction between two points
-		Vector3 raycastDirection = mouseAwayFromCamera - cam.transform.position;
-		
-		//shoot raycast from camera using direction
-		RaycastHit rayHit;
-		if (Physics.Raycast(cam.transform.position, raycastDirection, out rayHit, Mathf.Infinity, FLOOR_LAYERMASK))
+		if (!Input.GetMouseButton(1))
 		{
-			Debug.DrawRay(cam.transform.position, raycastDirection * rayHit.distance, Color.yellow);
-			mouseWorldPosition = rayHit.point;
-		}
-		else
-		{
-			Debug.DrawRay(cam.transform.position, raycastDirection * 1000, Color.white);
+			//find the world location on the floor plane where the mouse cursor is pointing at
+			//cursor to world location
+			mousePosition = Input.mousePosition;
+			mousePosition.z = 1;
+			mouseAwayFromCamera = cam.ScreenToWorldPoint(mousePosition);
+
+			//find direction between two points
+			Vector3 raycastDirection = mouseAwayFromCamera - cam.transform.position;
+
+			//shoot raycast from camera using direction
+			RaycastHit rayHit;
+			if (Physics.Raycast(cam.transform.position, raycastDirection, out rayHit, Mathf.Infinity, FLOOR_LAYERMASK))
+			{
+				Debug.DrawRay(cam.transform.position, raycastDirection * rayHit.distance, Color.yellow);
+				mouseWorldPosition = rayHit.point;
+			}
+			else
+			{
+				Debug.DrawRay(cam.transform.position, raycastDirection * 1000, Color.white);
+			}
 		}
 	}
 
@@ -142,11 +150,11 @@ public class PlayerController : MonoBehaviour
 		} 
 		else if (distanceFromMouse > 10)
 		{
-			moveSpeed = 10;
+			moveSpeed = maxMoveSpeed;
 		}
 		else
 		{
-			moveSpeed = distanceFromMouse;
+			moveSpeed = distanceFromMouse * maxMoveSpeed/10;
 		}
 		
 		//get W/S inputs - since people don't run sideways
@@ -251,7 +259,6 @@ public class PlayerController : MonoBehaviour
 		if (gameStateScript.ballGrounded) //if ball is grounded, disable trajectory and hit marker
 		{
 			trajectoryLR.enabled = false;
-			//trajectoryHit.GetComponent<SpriteRenderer>().enabled = false;
 		}
 	}
 	

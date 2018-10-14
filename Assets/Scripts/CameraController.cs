@@ -10,8 +10,13 @@ public class CameraController : MonoBehaviour
 	private Vector3 position;
 
 	private float targetCamDistance;
-	private float currentCamDistance = 0;
+	private float currentCamDistance = -5;
 
+	void Start()
+	{
+		targetCamDistance = currentCamDistance;
+	}
+	
 	// Update is called once per frame
 	void Update()
 	{
@@ -29,7 +34,14 @@ public class CameraController : MonoBehaviour
 		
 		if (Input.GetMouseButton(1))
 		{
-			cameraOrbit.transform.eulerAngles += new Vector3(0, horizontal * -1.5f, 0);	
+			cameraOrbit.transform.eulerAngles += new Vector3(0, horizontal * -1.5f, 0);
+			Cursor.lockState = CursorLockMode.Locked;
+			Cursor.visible = false;
+		}
+		else
+		{
+			Cursor.lockState = CursorLockMode.None;
+			Cursor.visible = true;
 		}
 
 		float mouseScroll = Input.GetAxis("Mouse ScrollWheel");
@@ -40,7 +52,7 @@ public class CameraController : MonoBehaviour
 			targetCamDistance += 1;
 			currentCamDistance += 1;
 		}
-		else if (mouseScroll < 0f && currentCamDistance > -10)
+		else if (mouseScroll < 0f && currentCamDistance > -20)
 		{
 			targetCamDistance -= 1;
 			currentCamDistance -= 1;
