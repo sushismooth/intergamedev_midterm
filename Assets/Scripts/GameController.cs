@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.SymbolStore;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class GameController : MonoBehaviour {
 
@@ -29,6 +30,9 @@ public class GameController : MonoBehaviour {
 	public int lastHeldBall; //1 = player, 2 = partner
 
 	public GameObject successText;
+
+	public GameObject throwTrajectory;
+	public GameObject trajectoryHit;
 	
 	// Use this for initialization
 	void Start ()
@@ -94,22 +98,25 @@ public class GameController : MonoBehaviour {
 		playerScript.maxPower = 8 + (currentLevel * 2);
 		
 		partner.transform.localScale = new Vector3(partnerScale, partnerScale, partnerScale);
-		partner.transform.position = new Vector3(0f, 1.1f, 16.5f + (currentLevel * 7f));
+		partner.transform.position = new Vector3(0f, 1.1f, 17.5f + (currentLevel * 5f));
 		partnerScript.hasBall = false;
 		partnerScript.isPatrolling = false;
 		partnerScript.moveSpeed = 3 + (currentLevel * 1);
-		partnerScript.minZ = 13f + (currentLevel * 7f);
-		partnerScript.maxZ = 20f + (currentLevel * 7f);
+		partnerScript.minZ = 15f + (currentLevel * 5f);
+		partnerScript.maxZ = 20f + (currentLevel * 5f);
 		
 		ball.transform.position = ballStartPos;
 		ball.transform.parent = null;
 		ball.GetComponent<Rigidbody>().isKinematic = false;
 		ballHeld = 0;
+		ball.transform.localScale = new Vector3(1, 1, 1);
 
+		throwTrajectory.GetComponent<LineRenderer>().enabled = false;
+		trajectoryHit.GetComponent<SpriteRenderer>().enabled = false;
 	}
 
 	void EndGame()
 	{
-		
+		SceneManager.LoadScene("EndScene");
 	}
 }

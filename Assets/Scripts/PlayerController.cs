@@ -32,6 +32,7 @@ public class PlayerController : MonoBehaviour
 	private Rigidbody ballRbody;
 	public bool hasBall;
 	public bool isChargingThrow;
+	private float chargeDuration;
 	public float endTime;
 	public float airTime;
 	private float throwPower;
@@ -173,6 +174,7 @@ public class PlayerController : MonoBehaviour
 			isChargingThrow = true;
 			throwPower = 0f;
 			airTime = 0;
+			chargeDuration = 0;
 		} 
 		else if (hasBall && Input.GetMouseButton(0) && isChargingThrow) //during mouse hold
 		{
@@ -188,6 +190,13 @@ public class PlayerController : MonoBehaviour
 			throwTrajectory.transform.position = ball.transform.position; //place origin of trajectory at ball position
 			throwTrajectory.transform.eulerAngles = this.transform.eulerAngles - new Vector3(0, 90, 0); //angle trajectory with facing of player/ball
 			RenderArc();
+			
+			chargeDuration += Time.deltaTime;
+			if (chargeDuration > 5)
+			{
+				isChargingThrow = false;
+				trajectoryLR.positionCount = 0;
+			}
 		} 
 		else if (hasBall && Input.GetMouseButtonUp(0) && isChargingThrow) //on mouse release
 		{
