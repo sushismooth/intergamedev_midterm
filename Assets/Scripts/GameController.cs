@@ -33,6 +33,20 @@ public class GameController : MonoBehaviour {
 
 	public GameObject throwTrajectory;
 	public GameObject trajectoryHit;
+
+	public GameObject fade;
+	private int inTransition = 0; //0 = not in transition; 1 = increase alpha; -1 = decrease alpha;
+	private float fadeAlpha = 0;
+	public float transitionTime;
+
+	public GameObject throwIconUI;
+	public GameObject catchIconUI;
+	private RawImage throwRawImage;
+	private RawImage catchRawImage;
+	public Texture throwIcon;
+	public Texture throwIconSuccess;
+	public Texture catchIcon;
+	public Texture catchIconSuccess;
 	
 	// Use this for initialization
 	void Start ()
@@ -40,6 +54,12 @@ public class GameController : MonoBehaviour {
 		gameState = THROW;
 		playerScript = player.GetComponent<PlayerController>();
 		partnerScript = partner.GetComponent<PartnerController>();
+		throwRawImage = throwIconUI.GetComponent<RawImage>();
+		catchRawImage = catchIconUI.GetComponent<RawImage>();
+		
+		fade.GetComponent<Image>().color = new Color(0,0,0,1);
+		fadeAlpha = 255;
+		inTransition = -1;
 		
 		NewLevel();
 	}
@@ -66,15 +86,48 @@ public class GameController : MonoBehaviour {
 			successCatches;
 		
 		CheckLevelProgress();
+		if (inTransition != 0)
+		{
+			transition();
+		}
+		
+		UpdateIcons();
 	}
 
+	void UpdateIcons()
+	{
+		if (successThrows > 0)
+		{
+			throwRawImage.texture = throwIconSuccess;
+		} 
+		else if (successThrows == 0)
+		{
+			throwRawImage.texture = throwIcon;
+		}
+		if (successCatches > 0)
+		{
+			catchRawImage.texture = catchIconSuccess;
+		} 
+		else if (successCatches == 0)
+		{
+			catchRawImage.texture = catchIcon;
+		}
+	}
+	
 	void CheckLevelProgress()
 	{
-		if (successThrows >= successesPerLevel && successCatches >= successesPerLevel)
+		if (successThrows >= successesPerLevel && successCatches >= successesPerLevel && inTransition == 0)
 		{
-			successThrows = 0;
-			successCatches = 0;
 			currentLevel++;
+			inTransition = 1;
+		}
+	}
+
+	void transition()
+	{
+		if (fadeAlpha >= 255 & inTransition == 1)
+		{
+			inTransition = -1;
 			if (currentLevel > maxLevels)
 			{
 				EndGame();
@@ -82,11 +135,21 @@ public class GameController : MonoBehaviour {
 			}
 			NewLevel();
 		}
+		fadeAlpha += (255 / (transitionTime/2)) * Time.deltaTime * inTransition;
+		float fadeAlphaNormalized = fadeAlpha / 255;
+		fade.GetComponent<Image>().color = new Color(0,0,0,fadeAlphaNormalized);
+		if (fadeAlpha <= 0 & inTransition == -1)
+		{
+			inTransition = 0;
+		}
+		
 	}
 	
 	void NewLevel()
 	{
 		gameState = THROW;
+		successThrows = 0;
+		successCatches = 0;
 		
 		float playerScale = 0.5f + (currentLevel * (0.5f / maxLevels));
 		float partnerScale = 0.7f + (currentLevel * (0.3f / maxLevels));
@@ -108,6 +171,7 @@ public class GameController : MonoBehaviour {
 		ball.transform.position = ballStartPos;
 		ball.transform.parent = null;
 		ball.GetComponent<Rigidbody>().isKinematic = false;
+		ball.GetComponent<SphereCollider>().enabled = true;
 		ballHeld = 0;
 		ball.transform.localScale = new Vector3(1, 1, 1);
 

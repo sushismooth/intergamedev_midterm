@@ -103,8 +103,10 @@ public class PlayerController : MonoBehaviour
 			gameStateScript.lastHeldBall = 1;
 			ball.transform.parent = this.gameObject.transform; //attach ball to player, remove physics
 			ballRbody.isKinematic = true;
-			ball.transform.localPosition = Vector3.forward * (1.1f * ((transform.localScale.x/2) + 0.5f) * ball.transform.localScale.x);
+			ball.GetComponent<SphereCollider>().enabled = false;
+			ball.transform.localPosition = Vector3.forward * (0.6f * ((transform.localScale.x/2) + 0.5f) * ball.transform.localScale.x);
 			ball.transform.eulerAngles = Vector3.zero;
+			
 
 			trajectoryLR.positionCount = 0;
 		}
@@ -205,6 +207,7 @@ public class PlayerController : MonoBehaviour
 			hasBall = false;
 			ball.transform.parent = null;
 			ballRbody.isKinematic = false;
+			ball.GetComponent<SphereCollider>().enabled = true;
 			gameStateScript.ballHeld = 0;
 
 			Vector3 throwAngleV3 = new Vector3(throwAngle * -1, transform.eulerAngles.y, 0); //Vector3 including throwAngle and playerRotation

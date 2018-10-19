@@ -8,9 +8,16 @@
       <e p="Assets" t="Include">
         <e p="Scripts" t="Include">
           <e p="CameraController.cs" t="Include" />
+          <e p="DividerScript.cs" t="Include" />
+          <e p="EndFade.cs" t="Include" />
+          <e p="EndTextScript.cs" t="Include" />
           <e p="GameController.cs" t="Include" />
+          <e p="InstructionsButton.cs" t="Include" />
+          <e p="IntroTextScript.cs" t="Include" />
           <e p="PartnerController.cs" t="Include" />
           <e p="PlayerController.cs" t="Include" />
+          <e p="StartButton.cs" t="Include" />
+          <e p="StartPlayerController.cs" t="Include" />
           <e p="TrajectoryHitMarkerAlpha.cs" t="Include" />
         </e>
       </e>

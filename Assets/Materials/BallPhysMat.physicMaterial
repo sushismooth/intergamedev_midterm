@@ -5,7 +5,7 @@ PhysicMaterial:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
-  m_Name: BallMat
+  m_Name: BallPhysMat
   dynamicFriction: 0.8
   staticFriction: 0.8
   bounciness: 0.2

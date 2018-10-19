@@ -27,6 +27,8 @@ public class PartnerController : MonoBehaviour {
 
 	public float minZ;
 	public float maxZ;
+	public GameObject patrolMarker1;
+	public GameObject patrolMarker2;
 	private int currentPatrolTarget = 1;
 	private Vector3 patrolPos1;
 	private Vector3 patrolPos2;
@@ -111,6 +113,14 @@ public class PartnerController : MonoBehaviour {
 		Debug.DrawLine(new Vector3(-25, 0.1f, minZ), new Vector3(25, 0.1f, minZ), Color.red); //show bounds
 		Debug.DrawLine(new Vector3(-25, 0.1f, maxZ), new Vector3(25, 0.1f, maxZ), Color.red);
 
+		if (hasBall || gameStateScript.ballGrounded)
+		{
+			patrolMarker1.SetActive(false);
+			patrolMarker2.SetActive(false);
+		}
+		
+		PatrolMarkers();
+		
 		wasPatrolling = isPatrolling;
 	}
 
@@ -168,11 +178,12 @@ public class PartnerController : MonoBehaviour {
 	}
 
 	void ReleaseThrow()
-	{
+	{	
 		isChargingThrow = false;
 		hasBall = false;
 		ball.transform.parent = null;
 		ballRbody.isKinematic = false;
+		ball.GetComponent<SphereCollider>().enabled = true;
 		gameStateScript.ballHeld = 0;
 		
 		Vector3 throwAngleV3 = new Vector3(throwAngle * -1, transform.eulerAngles.y, 0);
@@ -269,8 +280,48 @@ public class PartnerController : MonoBehaviour {
 	{
 		if (isPatrolling && !wasPatrolling) //check if patrol just started
 		{
-			patrolPos1 = new Vector3(Random.Range(-20f, 0f), transform.position.y, Random.Range(minZ, maxZ));
-			patrolPos2 = new Vector3(Random.Range(patrolPos1.x + 10, 20f), transform.position.y, Random.Range(minZ, maxZ));
+			bool clearPath = false;
+			int i = 0;
+			while (!clearPath)
+			{
+				patrolPos1 = new Vector3(Random.Range(-20f, 0f), transform.position.y, Random.Range(minZ, maxZ));
+                patrolPos2 = new Vector3(Random.Range(patrolPos1.x + 10, 20f), transform.position.y, Random.Range(minZ, maxZ));
+				RaycastHit hit;
+				Vector3 direction = patrolPos2 - patrolPos1;
+				if (Physics.Raycast(patrolPos1, direction, out hit,Vector3.Distance(patrolPos1,patrolPos2)))
+				{
+					Debug.Log(hit.collider.gameObject);
+					i++;				
+					if (i > 10)
+                    {
+						break;
+                    }
+					continue;
+				}
+				else
+				{
+					break;
+				}
+
+				
+
+			}
+
+			
+			patrolMarker1.SetActive(true);
+			patrolMarker2.SetActive(true);
+			
+			Vector3 markerPos1 = patrolPos1;
+			markerPos1.y = 0.01f;
+			patrolMarker1.transform.position = markerPos1;
+		
+
+			Vector3 markerPos2 = patrolPos2;
+			markerPos2.y = 0.01f;
+			patrolMarker2.transform.position = markerPos2;
+		
+			patrolMarker1.transform.LookAt(patrolMarker2.transform);
+			patrolMarker2.transform.LookAt(patrolMarker1.transform);
 		}
 	}
 
@@ -284,6 +335,21 @@ public class PartnerController : MonoBehaviour {
 		{
 			currentPatrolTarget = 1;
 		}
+	}
+
+	void PatrolMarkers()
+	{	
+		/*Vector3 markerPos1 = patrolPos1;
+		markerPos1.y = 0.01f;
+		patrolMarker1.transform.position = markerPos1;
+		
+
+		Vector3 markerPos2 = patrolPos2;
+		markerPos2.y = 0.01f;
+		patrolMarker2.transform.position = markerPos2;
+		
+		patrolMarker1.transform.LookAt(patrolMarker2.transform);
+		patrolMarker2.transform.LookAt(patrolMarker1.transform);*/
 	}
 
 	void OnCollisionEnter(Collision collision)
@@ -301,7 +367,8 @@ public class PartnerController : MonoBehaviour {
 			gameStateScript.lastHeldBall = 2;
 			ball.transform.parent = this.gameObject.transform;
 			ballRbody.isKinematic = true;
-			ball.transform.localPosition = Vector3.forward * 1.1f * ball.transform.localScale.x;
+			ball.GetComponent<SphereCollider>().enabled = false;
+			ball.transform.localPosition = Vector3.forward * 0.6f * ball.transform.localScale.x;
 			ball.transform.eulerAngles = Vector3.zero;
 			
 			trajectoryLR.positionCount = 0;
